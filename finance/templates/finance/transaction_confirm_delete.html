@@ -1,0 +1,7 @@
+<h1>Delete transaction?</h1>
+<p>{{ transaction.type }} — {{ transaction.amount }} {{ transaction.currency }} on {{ transaction.date }}</p>
+<form method="post">
+{% csrf_token %}
+<button type="submit">Yes, delete</button>
+</form>
+<a href="{% url 'transaction_list' %}">Cancel</a>

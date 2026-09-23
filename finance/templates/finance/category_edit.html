@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-center">
+<div style="max-width: 500px; width: 100%;">
+
+<h2 class="page-title text-center">Edit {% if category.parent %}Subcategory{% else %}Category{% endif %}</h2>
+
+<div class="card p-3 mb-4">
+    <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">{{ form.name.label }}</label>
+        {{ form.name }}
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+    {% if category.parent %}
+    <a href="{% url 'category_edit' category.parent.pk %}" class="d-block mt-2">← Back to {{ category.parent.name }}</a>
+    {% endif %}
+</div>
+
+{% if subcategories is not None %}
+<div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong>Subcategories</strong>
+        <a href="{% url 'subcategory_create' category.pk %}" class="btn btn-sm btn-primary">+ Add Subcategory</a>
+    </div>
+    <ul class="list-group list-group-flush">
+    {% for sub in subcategories %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ sub.name }}
+            <span>
+                <a href="{% url 'category_edit' sub.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                <a href="{% url 'category_delete' sub.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+            </span>
+        </li>
+    {% empty %}
+        <li class="list-group-item text-muted">No subcategories yet.</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+</div>
+</div>
+{% endblock %}

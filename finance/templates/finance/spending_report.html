@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h2 class="mb-0">Spending by Category</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'export_pdf' 'spending' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+        </a>
+        <a href="{% url 'reports_landing' %}" class="btn btn-outline-secondary btn-sm">← Reports</a>
+    </div>
+</div>
+<form method="get" class="card p-3 mb-3 d-flex flex-row align-items-end gap-3 flex-wrap">
+    <div>
+        <label class="form-label small mb-1">From</label>
+        <input type="date" name="from" value="{{ date_from }}" class="form-control form-control-sm">
+    </div>
+    <div>
+        <label class="form-label small mb-1">To</label>
+        <input type="date" name="to" value="{{ date_to }}" class="form-control form-control-sm">
+    </div>
+    <div>
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{% url 'spending_report' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
+</form>
+
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="card p-3" style="border-radius: 14px;">
+            <h6 class="small">Category Breakdown (stacked by subcategory)</h6>
+            <div style="height: 320px;">
+                <canvas id="spendingBar"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card p-3" style="border-radius: 14px;">
+            <h6 class="small">Share of Total Spending</h6>
+            <div style="height: 320px;">
+                <canvas id="spendingDoughnut"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+new Chart(document.getElementById('spendingBar'), {
+    type: 'bar',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: {{ chart_datasets|safe }}
+    },
+    options: {
+        maintainAspectRatio: false,
+        scales: { x: { stacked: true }, y: { stacked: true } }
+    }
+});
+
+const doughnutLabels = {{ doughnut_labels|safe }};
+const doughnutValues = {{ doughnut_values|safe }};
+const doughnutColors = doughnutLabels.map((_, i) => `hsl(${i * 55}, 65%, 55%)`);
+
+new Chart(document.getElementById('spendingDoughnut'), {
+    type: 'doughnut',
+    data: {
+        labels: doughnutLabels,
+        datasets: [{ data: doughnutValues, backgroundColor: doughnutColors, borderWidth: 2 }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+    }
+});
+</script>
+{% endblock %}

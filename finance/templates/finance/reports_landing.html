@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width:50px;height:50px;border-radius:12px;background:#e7f0ff;color:#4c8dff;font-size:1.3rem;">
+            <i class="bi bi-clipboard-check"></i>
+        </div>
+        <div>
+            <div class="page-title" style="font-size:1.3rem;">Reports</div>
+            <div class="page-subtitle">View your reports</div>
+        </div>
+    </div>
+    
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <a href="{% url 'spending_report' %}" class="text-decoration-none">
+            <div class="card p-3" style="border-radius: 14px;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center justify-content-center" style="width:36px;height:36px;border-radius:50%;background:#fdeaea;color:#e55353;font-size:1rem;">
+                        <i class="bi bi-bar-chart-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-1 text-dark">Spending by Category</h6>
+                        <p class="text-muted small mb-0">Filter by date, view bar and doughnut breakdowns</p>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a href="{% url 'income_report' %}" class="text-decoration-none">
+            <div class="card p-3" style="border-radius: 14px;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center justify-content-center" style="width:36px;height:36px;border-radius:50%;background:#e7f8ef;color:#2ecc71;font-size:1rem;">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-1 text-dark">Income by Category</h6>
+                        <p class="text-muted small mb-0">View income breakdown by source</p>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}  

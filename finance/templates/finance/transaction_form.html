@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-center">
+    <div class="card p-4 mt-4" style="max-width: 500px; width: 100%;">
+        <h2 class="mb-3 text-center">{% if form.instance.pk %}Edit{% else %}New{% endif %} Transaction</h2>
+        <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="mb-3">
+    <label for="{{ form.amount.id_for_label }}" class="form-label fw-semibold">{{ form.amount.label }}</label>
+    {{ form.amount }}
+    {% if form.amount.errors %}
+        <div class="text-danger small mt-1">{{ form.amount.errors.0 }}</div>
+    {% endif %}
+</div>
+        <div class="mb-3">
+            <label for="{{ form.currency.id_for_label }}" class="form-label fw-semibold">{{ form.currency.label }}</label>
+            {{ form.currency }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.date.id_for_label }}" class="form-label fw-semibold">{{ form.date.label }}</label>
+            {{ form.date }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.type.id_for_label }}" class="form-label fw-semibold">{{ form.type.label }}</label>
+            {{ form.type }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold">{{ form.category.label }}</label>
+            {{ form.category }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.merchant.id_for_label }}" class="form-label fw-semibold">{{ form.merchant.label }}</label>
+            {{ form.merchant }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold">{{ form.notes.label }}</label>
+            {{ form.notes }}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Save</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

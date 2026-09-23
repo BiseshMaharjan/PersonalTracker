@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Spending by Category</h1>
+
+
+<form method="get" class="card p-3 mb-3 d-flex flex-row align-items-end gap-3 flex-wrap">
+    <div>
+        <label class="form-label small mb-1">From</label>
+        <input type="date" name="from" value="{{ date_from }}" class="form-control form-control-sm">
+    </div>
+    <div>
+        <label class="form-label small mb-1">To</label>
+        <input type="date" name="to" value="{{ date_to }}" class="form-control form-control-sm">
+    </div>
+    <div>
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{% url 'transaction_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
+</form>
+
+<div class="card p-3 mb-4">
+    <div style="height: 350px;">
+        <canvas id="expenseChart"></canvas>
+    </div>
+</div>
+
+<h1>Income by Category</h1>
+
+<div class="card p-3 mb-4">
+    <div style="height: 350px;">
+        <canvas id="incomeChart"></canvas>
+    </div>
+</div>
+
+<script>
+new Chart(document.getElementById('expenseChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ expense_labels|safe }},
+        datasets: {{ expense_datasets|safe }}
+    },
+    options: {
+        maintainAspectRatio: false,
+        scales: { x: { stacked: true }, y: { stacked: true } }
+    }
+});
+
+new Chart(document.getElementById('incomeChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ income_labels|safe }},
+        datasets: {{ income_datasets|safe }}
+    },
+    options: {
+        maintainAspectRatio: false,
+        scales: { x: { stacked: true }, y: { stacked: true } }
+    }
+});
+</script>
+{% endblock %}

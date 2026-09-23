@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width:50px;height:50px;border-radius:12px;background:#e7f0ff;color:#4c8dff;font-size:1.3rem;">
+            <i class="bi bi-arrow-left-right"></i>
+        </div>
+        <div>
+            <div class="page-title" style="font-size:1.3rem;">Transactions</div>
+            <div class="page-subtitle">View and manage your income and expenses</div>
+        </div>
+    </div>
+       <div class="d-flex gap-2">
+        <a href="{% url 'transaction_create' %}" class="btn btn-add-action" style="background:#0d6efd;">
+            <i class="bi bi-plus-lg"></i> Add Transaction
+        </a>
+        <a href="{% url 'export_pdf' 'transactions' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+        </a>
+    </div>
+</div>
+
+<form method="get" class="card p-3 mb-3" style="border-radius: 14px;">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small text-muted">From</label>
+            <input type="date" name="from" value="{{ date_from }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">To</label>
+            <input type="date" name="to" value="{{ date_to }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">Type</label>
+            <select name="type" class="form-select">
+                <option value="">All</option>
+                <option value="income" {% if type_filter == "income" %}selected{% endif %}>Income</option>
+                <option value="expense" {% if type_filter == "expense" %}selected{% endif %}>Expense</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">Category</label>
+            <select name="category" class="form-select">
+                <option value="">All</option>
+                {% for c in categories %}
+                <option value="{{ c.id }}" {% if category_filter == c.id|stringformat:"s" %}selected{% endif %}>
+                    {% if c.parent_id %}— {% endif %}{{ c.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">Merchant</label>
+            <select name="merchant" class="form-select">
+                <option value="">All</option>
+                {% for m in merchants %}
+                <option value="{{ m }}" {% if merchant_filter == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100">Filter</button>
+            <a href="{% url 'transaction_list' %}" class="btn btn-outline-secondary w-100">
+                <i class="bi bi-arrow-clockwise"></i> Clear
+            </a>
+        </div>
+    </div>
+</form>
+
+<div class="card p-3" id="transactions-export-area" style="border-radius: 14px;">
+    <div class="small mb-2" style="color:#4c6fff;">Showing {{ count }} transaction{{ count|pluralize }}</div>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr class="text-muted small">
+                    <th>
+                        <a href="?sort={% if sort == 'date' %}-date{% else %}date{% endif %}&from={{ date_from }}&to={{ date_to }}&type={{ type_filter }}&category={{ category_filter }}&merchant={{ merchant_filter }}" class="text-muted text-decoration-none">
+                            Date <i class="bi bi-arrow-down-up"></i>
+                        </a>
+                    </th>
+                    <th>Type</th>
+                    <th>
+                        <a href="?sort={% if sort == 'amount' %}-amount{% else %}amount{% endif %}&from={{ date_from }}&to={{ date_to }}&type={{ type_filter }}&category={{ category_filter }}&merchant={{ merchant_filter }}" class="text-muted text-decoration-none">
+                            Amount <i class="bi bi-arrow-down-up"></i>
+                        </a>
+                    </th>
+                    <th>Category</th>
+                    <th>Merchant</th>
+                    <th>Balance</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in transactions %}
+                <tr>
+                    <td class="small">{{ t.date|date:"M. j, Y" }}</td>
+                    <td>
+                        {% if t.type == "income" %}
+                            <span class="badge rounded-pill" style="background:#e7f8ef; color:#2ecc71; font-weight:500;">
+                                <i class="bi bi-arrow-up"></i> Income
+                            </span>
+                        {% else %}
+                            <span class="badge rounded-pill" style="background:#fdeaea; color:#e55353; font-weight:500;">
+                                <i class="bi bi-arrow-down"></i> Expense
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="small fw-semibold {% if t.type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                        {% if t.type == "income" %}+{% else %}-{% endif %}Rs. {{ t.amount }}
+                    </td>
+                    <td>
+                        {% if t.category %}
+                            <span class="badge rounded-pill" style="background:#e7f0ff; color:#4c6fff; font-weight:500;">
+                                <i></i> {{ t.category.name }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted small">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ t.merchant|default:"-" }}</td>
+                    <td class="small">Rs. {{ t.running_balance }}</td>
+                    <td>
+                        <a href="{% url 'transaction_edit' t.pk %}" class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil"></i></a> 
+                        <a href="{% url 'transaction_delete' t.pk %}" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7" class="text-muted text-center py-3">No transactions found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

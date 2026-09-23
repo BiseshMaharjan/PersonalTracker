@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+    <div class="card p-3 d-flex flex-row align-items-center gap-3" style="border-radius: 14px;">
+        <div class="d-flex align-items-center justify-content-center" style="width:44px;height:44px;border-radius:50%;background:#e7f8ef;color:#2ecc71;font-size:1.1rem;">
+            <i class="bi bi-wallet2"></i>
+        </div>
+        <div>
+            <div class="text-muted small">Total Balance</div>
+            <div class="fw-bold fs-5">Rs. {{ balance }}</div>
+            {% if balance_change is not None %}
+                <div class="small {% if balance_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <i class="bi {% if balance_change >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                    {{ balance_change }}% <span class="text-muted">vs last month</span>
+                </div>
+            {% else %}
+                <div class="small text-muted">No data last month</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="col-md-4">
+    <div class="card p-3 d-flex flex-row align-items-center gap-3" style="border-radius: 14px;">
+        <div class="d-flex align-items-center justify-content-center" style="width:44px;height:44px;border-radius:50%;background:#e7f8ef;color:#2ecc71;font-size:1.1rem;">
+            <i class="bi bi-arrow-up"></i>
+        </div>
+        <div>
+            <div class="text-muted small">Total Income</div>
+            <div class="fw-bold fs-5">Rs. {{ income }}</div>
+            {% if balance_change is not None %}
+                <div class="small {% if balance_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <i class="bi {% if balance_change >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                    {{ balance_change }}% <span class="text-muted">vs last month</span>
+                </div>
+            {% else %}
+                <div class="small text-muted">No data last month</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="col-md-4">
+    <div class="card p-3 d-flex flex-row align-items-center gap-3" style="border-radius: 14px;">
+        <div class="d-flex align-items-center justify-content-center" style="width:44px;height:44px;border-radius:50%;background:#e7f8ef;color:#2ecc71;font-size:1.1rem;">
+            <i class="bi bi-arrow-down"></i> 
+        </div>
+        <div>
+            <div class="text-muted small">Total Expense</div>
+            <div class="fw-bold fs-5">Rs. {{ expenses }}</div>
+            {% if balance_change is not None %}
+                <div class="small {% if balance_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <i class="bi {% if balance_change >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                    {{ balance_change }}% <span class="text-muted">vs last month</span>
+                </div>
+            {% else %}
+                <div class="small text-muted">No data last month</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4 align-items-stretch">
+    <div class="col-md-6 d-flex">
+        <div class="card p-3 w-100" style="border-radius: 14px;">
+            <strong class="mb-2 d-block small">Spending by Category (This Month)</strong>
+            <div class="d-flex align-items-center gap-3" style="height: 200px;">
+                <div style="height: 170px; width: 170px; flex-shrink: 0; position: relative;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <div class="flex-grow-1" id="categoryLegend" style="overflow-y: auto; max-height: 200px;">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 d-flex">
+        <div class="card p-3 w-100" style="border-radius: 14px;">
+            <strong class="mb-2 d-block small">Cashflow (This Year)</strong>
+            <div style="height: 200px;">
+                <canvas id="cashflowChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card p-3" style="border-radius: 14px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="section-title mb-0">Recent Transactions</div>
+        <a href="{% url 'transaction_list' %}" class="text-decoration-none small fw-semibold" style="color:#0d6efd ;">
+            View All <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr class="text-muted small">
+                    <th class="fw-normal">Date</th>
+                    <th class="fw-normal">Merchant</th>
+                    <th class="fw-normal">Category</th>
+                    <th class="fw-normal">Type</th>
+                    <th class="fw-normal">Amount</th>
+                    <th class="fw-normal">Balance</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in recent %}
+                <tr>
+                    <td class="small">{{ t.date|date:"M. j, Y" }}</td>
+                    <td class="small">{{ t.merchant|default:"-" }}</td>
+                    <td class="small">{{ t.category|default:"-" }}</td>
+                    <td>
+                        {% if t.type == "income" %}
+                        <span class="badge rounded-pill" style="background:#e7f8ef; color:#2ecc71; font-weight:500;">
+                                 <i class="bi bi-arrow-up"></i> Income
+                        </span>
+                        {% else %}
+                         <span class="badge rounded-pill" style="background:#fdeaea; color:#e55353; font-weight:500;">
+                             <i class="bi bi-arrow-down"></i> Expense
+                        </span>
+                    {% endif %}
+                    </td>
+                    <td class="small fw-semibold {% if t.type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                        {% if t.type == "income" %}+{% else %}-{% endif %} Rs. {{ t.amount }}
+                    </td>
+                    <td class="small">Rs. {{ t.running_balance|default:"-" }}</td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm border-0" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots text-muted"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'transaction_edit' t.pk %}">Edit</a></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'transaction_delete' t.pk %}">Delete</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7" class="text-muted text-center py-3">No transactions yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<script>
+const categoryLabels = {{ category_labels|safe }};
+const categoryValues = {{ category_values|safe }};
+const categoryColors = categoryLabels.map((_, i) => `hsl(${i * 55}, 65%, 55%)`);
+
+new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+        labels: categoryLabels,
+        datasets: [{ data: categoryValues, backgroundColor: categoryColors, borderWidth: 2 }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        cutout: '65%'
+    }
+});
+
+const totalCategorySpend = categoryValues.reduce((a, b) => a + b, 0);
+const legendEl = document.getElementById('categoryLegend');
+categoryLabels.forEach((label, i) => {
+    const pct = totalCategorySpend ? Math.round((categoryValues[i] / totalCategorySpend) * 100) : 0;
+    legendEl.innerHTML += `
+        <div class="d-flex justify-content-between small mb-2">
+            <span><i class="bi bi-circle-fill" style="font-size:0.55rem; color:${categoryColors[i]};"></i> ${label}</span>
+            <span class="text-muted">Rs. ${categoryValues[i].toFixed(2)} &nbsp; ${pct}%</span>
+        </div>`;
+});
+
+new Chart(document.getElementById('cashflowChart'), {
+    type: 'line',
+    data: {
+        labels: {{ cashflow_labels|safe }},
+        datasets: [
+            {
+                label: 'Income',
+                data: {{ cashflow_income|safe }},
+                borderColor: '#2ecc71',
+                backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                fill: true,
+                tension: 0.3
+            },
+            {
+                label: 'Expense',
+                data: {{ cashflow_expense|safe }},
+                borderColor: '#e55353',
+                backgroundColor: 'rgba(229, 83, 83, 0.1)',
+                fill: true,
+                tension: 0.3
+            }
+        ]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width:50px;height:50px;border-radius:12px;background:#efedfd;color:#0d6efd ;font-size:1.3rem;">
+            <i class="bi bi-piggy-bank-fill"></i>
+        </div>
+        <div>
+            <div class="page-title" style="font-size:1.3rem;">Budget Overview</div>
+            <div class="page-subtitle">Track your spending and stay within budget</div>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <form method="get" class="d-inline">
+            <label class="badge bg-light text-dark border d-flex align-items-center gap-1 px-2 py-1"
+                   style="cursor:pointer; font-weight: 500; font-size: 0.8rem; border-radius: 6px;">
+                <i class="bi bi-calendar3" style="color:#0d6efd ; font-size: 0.9rem;"></i>
+                <input type="month" name="period" value="{{ period_value }}" min="{{ min_period }}"
+                       class="border-0 bg-transparent p-0" style="outline:none; font-size: 0.8rem; min-width: 110px;"
+                       onchange="this.form.submit()">
+            </label>
+        </form>
+        <a href="{% url 'budget_create' %}" class="btn btn-add-action" style="background: #0d6efd;">
+            <i class="bi bi-plus-lg"></i> Set Budget
+        </a>
+        <a href="{% url 'export_pdf' 'budget' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-file-earmark-pdf"></i> Export PDF
+</a>
+    </div>
+</div>
+
+{% if before_start %}
+<div class="card p-4 text-center text-muted">
+    <h5>No data found</h5>
+    <p class="mb-0">You don't have any transactions or budgets before {{ min_period }}.</p>
+</div>
+{% else %}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card p-3 d-flex flex-row align-items-center gap-3" style="border-radius: 14px;">
+            <div class="d-flex align-items-center justify-content-center" style="width:44px;height:44px;border-radius:50%;background:#efedfd;color:#0d6efd ;font-size:1.1rem;">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <div>
+                <div class="text-muted small">Total Budget</div>
+                <div class="fw-bold fs-5">Rs. {{ total_budget }}</div>
+                <div class="text-muted small">Monthly Budget</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 d-flex flex-row align-items-center gap-3" style="border-radius: 14px;">
+            <div class="d-flex align-items-center justify-content-center" style="width:44px;height:44px;border-radius:50%;background:#fdeaea;color:#e55353;font-size:1.1rem;">
+                <i class="bi bi-arrow-down"></i>
+            </div>
+            <div>
+                <div class="text-muted small">Total Spent</div>
+                <div class="fw-bold fs-5">Rs. {{ total_spent }}</div>
+                <div class="text-muted small">{{ overall_raw_percentage|floatformat:0 }}% of budget</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 d-flex flex-row align-items-center gap-3" style="border-radius: 14px;">
+            <div class="d-flex align-items-center justify-content-center" style="width:44px;height:44px;border-radius:50%;background:#e7f8ef;color:#2ecc71;font-size:1.1rem;">
+                <i class="bi bi-piggy-bank"></i>
+            </div>
+            <div>
+                <div class="text-muted small">Remaining</div>
+                <div class="fw-bold fs-5">Rs. {{ total_remaining }}</div>
+                <div class="text-muted small">{{ overall_percentage_remainder|floatformat:0 }}% remaining</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if alerts %}
+<div class="card p-3 mb-3" style="border-radius: 14px;">
+    <div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-bell-fill" style="color:#d7c34f;"></i><strong>Budget Alerts</strong></div>
+    {% for a in alerts %}
+    <div class="d-flex justify-content-between align-items-center rounded p-2 mb-2
+        {% if a.level == 'danger' %}bg-danger-subtle{% elif a.level == 'warning' %}bg-warning-subtle{% else %}bg-success-subtle{% endif %}">
+        <span class="small">
+            {% if a.level == 'danger' %}<i class="bi bi-exclamation-circle-fill text-danger"></i>
+            {% elif a.level == 'warning' %}<i class="bi bi-exclamation-triangle-fill text-warning"></i>
+            {% else %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}
+            {{ a.text }}
+        </span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card p-3 mb-3" style="border-radius: 14px;">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="section-title">Category Budgets</div>
+    </div>
+    <div class="row g-3">
+    {% for item in items %}
+        <div class="col-md-6">
+            <div class="card p-3 h-100" style="border-radius: 12px; border:1px solid #eee;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="d-flex align-items-center justify-content-center" style="width:38px;height:38px;border-radius:50%;
+                            background:{% if item.status == 'overspent' %}#fdeaea{% else %}#e7f8ef{% endif %};
+                            color:{% if item.status == 'overspent' %}#e55353{% else %}#2ecc71{% endif %};">
+                            <i class="bi bi-tag-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small">{{ item.budget.category.name }}</div>
+                            <div class="small text-muted">Rs. {{ item.spent }} / Rs. {{ item.budget_amount }}</div>
+                        </div>
+                    </div>
+                    {% if item.status == "overspent" %}<span class="badge bg-danger rounded-pill">Over Budget</span>
+                    {% elif item.status == "near_limit" or item.status == "approaching" %}<span class="badge bg-warning text-dark rounded-pill">Near Limit</span>
+                    {% else %}<span class="badge bg-success rounded-pill">Within Budget</span>{% endif %}
+                </div>
+                <div class="progress mt-2" style="height: 7px; border-radius: 6px;">
+                    <div class="progress-bar {% if item.status == 'overspent' %}bg-danger{% elif item.status == 'near_limit' or item.status == 'approaching' %}bg-warning{% else %}bg-success{% endif %}"
+                         style="width: {{ item.percentage }}%; border-radius: 6px;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <span class="small {% if item.remaining < 0 %}text-danger{% else %}text-success{% endif %}">
+                        {% if item.remaining >= 0 %}Remaining: Rs. {{ item.remaining }}{% else %}Over by: Rs. {{ item.remaining|floatformat:2 }}{% endif %}
+                    </span>
+                    <span class="small" style="color: #0d6efd;">{{ item.raw_percentage|floatformat:0 }}%</span>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-muted mb-0">No budgets set for this month yet.</p>
+    {% endfor %}
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card p-3" style="border-radius: 14px;">
+            <div class="section-title">Spending Overview</div>
+            <div class="d-flex align-items-center gap-2">
+                <div style="height: 170px; width: 140px; flex-shrink: 0; position: relative;">
+    <canvas id="spendingDonut"></canvas>
+</div>
+                <div style="flex: 1; min-width: 0; overflow-x: hidden;" id="budgetCategoryLegend"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-3 text-center" style="border-radius: 14px;">
+            <div class="section-title">Budget Progress</div>
+            <div style="height: 140px; position: relative;">
+                <canvas id="progressGauge"></canvas>
+                <div style="position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%);">
+                    <div class="fs-3 fw-bold">{{ overall_raw_percentage|floatformat:0 }}%</div>
+                    <div class="small text-muted">of monthly budget used</div>
+                </div>
+            </div>
+            <div class="small text-muted mt-2">Rs. {{ total_spent }} / Rs. {{ total_budget }}</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const budgetChartLabels = {{ chart_labels|safe }};
+const budgetChartValues = {{ chart_spent|safe }};
+const budgetChartColors = budgetChartLabels.map((_, i) => `hsl(${i * 55}, 65%, 55%)`);
+
+new Chart(document.getElementById('spendingDonut'), {
+    type: 'doughnut',
+    data: {
+        labels: budgetChartLabels,
+        datasets: [{ data: budgetChartValues, backgroundColor: budgetChartColors, borderWidth: 2 }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        cutout: '65%'
+    }
+});
+
+const totalBudgetSpend = budgetChartValues.reduce((a, b) => a + b, 0);
+const budgetLegendEl = document.getElementById('budgetCategoryLegend');
+budgetChartLabels.forEach((label, i) => {
+    const pct = totalBudgetSpend ? Math.round((budgetChartValues[i] / totalBudgetSpend) * 100) : 0;
+    budgetLegendEl.innerHTML += `
+        <div class="d-flex justify-content-between align-items-center mb-2" style="white-space: nowrap; font-size: 0.78rem;">
+            <span class="text-truncate" style="max-width: 140px;">
+                <i class="bi bi-circle-fill" style="font-size:0.5rem; color:${budgetChartColors[i]};"></i> ${label}
+            </span>
+            <span class="text-muted" style="flex-shrink: 0;">
+                Rs. ${budgetChartValues[i].toFixed(0)} &nbsp;(${pct}%)
+            </span>
+        </div>`;
+});
+
+new Chart(document.getElementById('progressGauge'), {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [{{ overall_percentage }}, {{ overall_percentage_remainder }}],
+            backgroundColor: ['#0d6efd ', '#eceefb'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        rotation: -90,
+        circumference: 180,
+        cutout: '75%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+});
+</script>
+
+{% endif %}
+{% endblock %}

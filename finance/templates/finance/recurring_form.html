@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-center">
+<div style="max-width: 500px; width: 100%;">
+<h2 class="page-title text-center mb-3">New Recurring Transaction</h2>
+<div class="card p-4" style="border-radius: 14px;">
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Amount</label>
+            {{ form.amount }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Type</label>
+            {{ form.type }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Category</label>
+            {{ form.category }}
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <label class="form-label fw-semibold">Repeat every</label>
+                {{ form.interval_count }}
+            </div>
+            <div class="col-6">
+                <label class="form-label fw-semibold">&nbsp;</label>
+                {{ form.interval }}
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Next Run</label>
+            {{ form.next_run }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">End Date (optional)</label>
+            {{ form.end_date }}
+        </div>
+        <button type="submit" class="btn btn-add-action w-100">Save</button>
+    </form>
+</div>
+</div>
+</div>
+{% endblock %}
