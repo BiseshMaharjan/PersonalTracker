@@ -535,40 +535,190 @@ EXPORTABLE_PAGES = {
     "income": {"url_name": "income_report", "selector": ".container-fluid", "filename": "income_report"},
 }
 
+class ReportPDF(FPDF):
+    def __init__(self, title, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.report_title = title
+
+    def header(self):
+        self.set_font("Helvetica", "B", 14)
+        self.cell(0, 10, self.report_title, ln=True, align="C")
+        self.set_font("Helvetica", "", 9)
+        self.cell(0, 6, timezone.now().strftime("Generated %d %b %Y, %I:%M %p"), ln=True, align="C")
+        self.ln(4)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 8)
+        self.cell(0, 10, f"Page {self.page_no()}", align="C")
+
+    def section_title(self, text):
+        self.set_font("Helvetica", "B", 12)
+        self.set_fill_color(230, 230, 230)
+        self.cell(0, 8, text, ln=True, fill=True)
+        self.ln(2)
+
+    def table_header(self, headers, widths):
+        self.set_font("Helvetica", "B", 10)
+        self.set_fill_color(245, 245, 245)
+        for h, w in zip(headers, widths):
+            self.cell(w, 8, h, border=1, fill=True)
+        self.ln()
+
+    def table_row(self, values, widths):
+        self.set_font("Helvetica", "", 9)
+        for v, w in zip(values, widths):
+            self.cell(w, 7, str(v), border=1)
+        self.ln()
+
+
+def _build_budget_pdf(user, month, year):
+    budgets = Budget.objects.filter(user=user, month=month, year=year).select_related("category")
+
+    pdf = ReportPDF(f"Budget Overview - {year}-{month:02d}")
+    pdf.add_page()
+
+    if not budgets:
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 10, "No budgets set for this period.", ln=True)
+        return pdf
+
+    headers = ["Category", "Budgeted (Rs.)", "Spent (Rs.)", "Remaining (Rs.)", "Status"]
+    widths = [50, 35, 35, 35, 35]
+    pdf.table_header(headers, widths)
+
+    total_budget = 0
+    total_spent = 0
+    for b in budgets:
+        spent = Transaction.objects.filter(
+            user=user, type="expense", category=b.category, date__month=month, date__year=year
+        ).aggregate(total=Sum("amount"))["total"] or 0
+        spent = float(spent)
+        budget_amt = float(b.amount)
+        remaining = budget_amt - spent
+        status = "Overspent" if spent > budget_amt else "OK"
+
+        pdf.table_row(
+            [b.category.name, f"{budget_amt:.2f}", f"{spent:.2f}", f"{remaining:.2f}", status],
+            widths,
+        )
+        total_budget += budget_amt
+        total_spent += spent
+
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 8, f"Total Budgeted: Rs. {total_budget:.2f}   |   Total Spent: Rs. {total_spent:.2f}   |   Remaining: Rs. {total_budget - total_spent:.2f}", ln=True)
+
+    return pdf
+
+
+def _build_transactions_pdf(user, get_params):
+    transactions = Transaction.objects.filter(user=user).select_related("category")
+
+    date_from = get_params.get("from")
+    date_to = get_params.get("to")
+    type_filter = get_params.get("type")
+    category_filter = get_params.get("category")
+
+    if date_from:
+        transactions = transactions.filter(date__gte=date_from)
+    if date_to:
+        transactions = transactions.filter(date__lte=date_to)
+    if type_filter:
+        transactions = transactions.filter(type=type_filter)
+    if category_filter:
+        transactions = transactions.filter(category_id=category_filter)
+
+    transactions = transactions.order_by("-date", "-id")
+
+    pdf = ReportPDF("Transactions")
+    pdf.add_page()
+
+    headers = ["Date", "Category", "Type", "Merchant", "Amount (Rs.)"]
+    widths = [30, 45, 25, 45, 35]
+    pdf.table_header(headers, widths)
+
+    total_income = 0
+    total_expense = 0
+    for t in transactions:
+        pdf.table_row(
+            [t.date.strftime("%Y-%m-%d"), t.category.name if t.category else "Uncategorized",
+             t.type.capitalize(), t.merchant or "-", f"{float(t.amount):.2f}"],
+            widths,
+        )
+        if t.type == "income":
+            total_income += float(t.amount)
+        else:
+            total_expense += float(t.amount)
+
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 8, f"Total Income: Rs. {total_income:.2f}   |   Total Expenses: Rs. {total_expense:.2f}   |   Net: Rs. {total_income - total_expense:.2f}", ln=True)
+
+    return pdf
+
+
+def _build_category_report_pdf(user, tran_type, title, date_from=None, date_to=None):
+    labels, datasets, totals = _category_chart_data(user, tran_type, date_from, date_to)
+
+    pdf = ReportPDF(title)
+    pdf.add_page()
+
+    if not labels:
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 10, "No data available.", ln=True)
+        return pdf
+
+    headers = ["Category", "Total (Rs.)"]
+    widths = [90, 60]
+    pdf.table_header(headers, widths)
+
+    grand_total = 0
+    for label, total in zip(labels, totals):
+        pdf.table_row([label, f"{total:.2f}"], widths)
+        grand_total += total
+
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 8, f"Grand Total: Rs. {grand_total:.2f}", ln=True)
+
+    return pdf
+
+
 @login_required
 def export_pdf(request, page_key):
-    config = EXPORTABLE_PAGES.get(page_key)
-    if not config:
+    user = request.user
+    today = timezone.now().date()
+
+    if page_key == "budget":
+        period = request.GET.get("period")
+        if period:
+            year, month = period.split("-")
+            year, month = int(year), int(month)
+        else:
+            year, month = today.year, today.month
+        pdf = _build_budget_pdf(user, month, year)
+        filename = f"budget_overview_{year}_{month:02d}.pdf"
+
+    elif page_key == "transactions":
+        pdf = _build_transactions_pdf(user, request.GET)
+        filename = "transactions.pdf"
+
+    elif page_key == "spending":
+        pdf = _build_category_report_pdf(
+            user, "expense", "Spending Report",
+            request.GET.get("from"), request.GET.get("to"),
+        )
+        filename = "spending_report.pdf"
+
+    elif page_key == "income":
+        pdf = _build_category_report_pdf(user, "income", "Income Report")
+        filename = "income_report.pdf"
+
+    else:
         return HttpResponse("Invalid export target.", status=404)
 
-    target_url = request.build_absolute_uri(reverse(config["url_name"]))
-
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_img:
-        img_path = tmp_img.name
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.context.add_cookies([{
-            "name": "sessionid",
-            "value": request.COOKIES.get("sessionid", ""),
-            "url": request.build_absolute_uri("/"),
-        }])
-        page.goto(target_url, wait_until="networkidle")
-        page.locator(config["selector"]).screenshot(path=img_path)
-        browser.close()
-
-    pdf = FPDF(orientation="P", unit="mm", format="A4")
-    pdf.add_page()
-    pdf.image(img_path, x=10, y=10, w=190)
-    pdf_path = img_path.replace(".png", ".pdf")
-    pdf.output(pdf_path)
-
-    os.remove(img_path)
-    with open(pdf_path, "rb") as f:
-        pdf_data = f.read()
-    os.remove(pdf_path)
-
-    response = HttpResponse(pdf_data, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{config["filename"]}.pdf"'
+    pdf_bytes = bytes(pdf.output())
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
